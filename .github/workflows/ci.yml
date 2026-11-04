@@ -71,3 +71,10 @@ jobs:
           size=$(stat -c %s launcher/app/build/outputs/apk/release/app-release.apk)
           echo "release APK: $((size / 1024)) KB"
           test "$size" -lt 589824 || { echo "APK is over 576 KB; the launcher targets 1 GB TVs, keep it small"; exit 1; }
+      - name: Upload release APK (personal fork only — not part of upstream CI)
+        if: ${{ github.repository_owner == 'tvle369' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: launcher-release-apk
+          path: launcher/app/build/outputs/apk/release/app-release.apk
+          retention-days: 1
