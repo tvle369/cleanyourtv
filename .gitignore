@@ -16,6 +16,14 @@ traces/
 bench-results/
 .DS_Store
 
+# Personal signing material (tvle369/cleanyourtv only) — never committed
+*.p12
+*.jks
+*.keystore
+*.pem
+*.key
+*.env
+
 # Generated install bundles and JVM crash reports stay out of contributions.
 *.apk
 *.aab
