@@ -45,9 +45,12 @@ android {
             // Sideloaded over ADB, never published: the permanent key signs only when all four CYT_* env
             // vars are present (the personal-signed-build job); every other build keeps the original
             // debug-key behavior unchanged, so it still installs over a prior debug build.
-            signingConfig (System.getenv("CYT_KEYSTORE_PATH") && System.getenv("CYT_KEYSTORE_PASSWORD") &&
-                System.getenv("CYT_KEY_ALIAS") && System.getenv("CYT_KEY_PASSWORD")) \
-                ? signingConfigs.release : signingConfigs.debug
+            def hasPersonalSigning =
+                System.getenv("CYT_KEYSTORE_PATH") &&
+                System.getenv("CYT_KEYSTORE_PASSWORD") &&
+                System.getenv("CYT_KEY_ALIAS") &&
+                System.getenv("CYT_KEY_PASSWORD")
+            signingConfig = hasPersonalSigning ? signingConfigs.release : signingConfigs.debug
         }
     }
 
