@@ -24,6 +24,9 @@ bench-results/
 *.key
 *.env
 
+# Local theme background videos (your own, never committed; the static wallpaper is the fallback).
+themes/*/background.mp4
+
 # Generated install bundles and JVM crash reports stay out of contributions.
 *.apk
 *.aab

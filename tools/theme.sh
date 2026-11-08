@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Push a theme (a folder with config.json, and optionally a wallpaper.jpg or a wallpapers/ collection) to the
-# launcher on the TV and restart Home so it picks it up. The launcher reads the files from its external files
-# directory and overlays config.json on its built-in config.xml; see themes/README.md for the keys.
+# Push a theme (a folder with config.json, and optionally a wallpaper.jpg, a wallpapers/ collection or a
+# background.mp4 video) to the launcher on the TV and restart Home so it picks it up. The launcher reads the
+# files from its external files directory and overlays config.json on its built-in config.xml; see
+# themes/README.md for the keys.
 #
 # Usage: TV_HOST=192.168.1.50 tools/theme.sh themes/aurora
 #        TV_HOST=192.168.1.50 tools/theme.sh --reset        # remove the overlay, back to config.xml
@@ -113,7 +114,7 @@ del() { echo "rm -f $DIR/$1 2>/dev/null; content delete --uri $URI/$1 2>/dev/nul
 CLEAR_WALLPAPERS="rm -f $DIR/wallpapers/*.[jJ][pP][gG] $DIR/wallpapers/*.[jJ][pP][eE][gG] $DIR/wallpapers/*.[pP][nN][gG] $DIR/wallpapers/*.[wW][eE][bB][pP] 2>/dev/null; content delete --uri $URI/wallpapers 2>/dev/null"
 
 if [ "${1:-}" = --reset ]; then
-  tv "mkdir -p $DIR 2>/dev/null; $(del config.json); $(del wallpaper.jpg); $(del wallpapers/captions.txt); $CLEAR_WALLPAPERS; printf '%s' '$REVISION' > $TMP-theme_revision; $(put theme_revision)" >/dev/null
+  tv "mkdir -p $DIR 2>/dev/null; $(del config.json); $(del wallpaper.jpg); $(del background.mp4); $(del wallpapers/captions.txt); $CLEAR_WALLPAPERS; printf '%s' '$REVISION' > $TMP-theme_revision; $(put theme_revision)" >/dev/null
   "$PY" -I theme_restart.py
   echo reset
   exit 0
@@ -176,6 +177,30 @@ if [ -f "$THEME/wallpaper.jpg" ]; then
   tv "$(put wallpaper.jpg)"
 else
   tv "$(del wallpaper.jpg)" >/dev/null
+fi
+# background.mp4: pushed and verified the same way, plus an explicit size/md5 check of the file that landed
+# in the launcher's own folder - the step beyond what wallpaper.jpg gets, since a silently truncated or
+# half-written video is a much larger, much less obvious failure than a bad picture. A theme without one
+# removes any stale copy, exactly like wallpaper.jpg's own else branch, so an old video cannot keep playing
+# once a theme that never shipped one is pushed.
+if [ -f "$THEME/background.mp4" ]; then
+  "$PY" -I b64push.py "$THEME/background.mp4" "$TMP-background.mp4"
+  tv "$(put background.mp4)"
+  LOCAL_SIZE="$(wc -c < "$THEME/background.mp4" | tr -d ' ')"
+  LOCAL_MD5="$("$PY" -I -c 'import hashlib, sys
+with open(sys.argv[1], "rb") as f:
+    print(hashlib.md5(f.read()).hexdigest())' "$THEME/background.mp4")"
+  REMOTE_CHECK="$(tv "wc -c < $DIR/background.mp4 2>/dev/null | tr -d ' '; md5sum $DIR/background.mp4 2>/dev/null | awk '{print \$1}'")"
+  REMOTE_SIZE="$(printf '%s\n' "$REMOTE_CHECK" | sed -n '1p')"
+  REMOTE_MD5="$(printf '%s\n' "$REMOTE_CHECK" | sed -n '2p')"
+  if [ "$REMOTE_SIZE" != "$LOCAL_SIZE" ] || [ "$REMOTE_MD5" != "$LOCAL_MD5" ]; then
+    echo "background.mp4 did not verify on the TV: local $LOCAL_SIZE bytes, md5 $LOCAL_MD5; remote" \
+      "${REMOTE_SIZE:-(missing)} bytes, md5 ${REMOTE_MD5:-(missing)}. The rest of the theme is already on the" \
+      "TV; fix background.mp4 and push the theme again." >&2
+    exit 1
+  fi
+else
+  tv "$(del background.mp4)" >/dev/null
 fi
 tv "$CLEAR_WALLPAPERS" >/dev/null
 for NAME in $NAMES; do

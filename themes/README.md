@@ -145,6 +145,7 @@ A new key needs one there in the same pull request.
 | `background_color` | `#RRGGBB` | Colour behind everything; black by default |
 | `sky_intensity` | 0 to 100 | Time-of-day backdrop: a dark gradient that follows the clock, 0 hides it (default) |
 | `wallpaper` | bool | Show the theme's picture, `wallpaper.jpg` or its `wallpapers/` collection (`true`), or draw neither (`false`) |
+| `video_background`, `video_background_sound` | bool | A local, looped `background.mp4` behind Home instead of the wallpaper (native `MediaPlayer`/`TextureView`, no other media dependency); `false` by default, and falls back to the wallpaper whenever the file is missing, empty or fails to play. `video_background_sound` plays the video's own embedded audio track instead of muting it; `false` by default |
 | `wallpaper_rotation_minutes` | 0 to 1440 | Rotate images in the theme's `wallpapers/` folder at this interval; 0 keeps the single-image behaviour. A negative or non-numeric value is ignored, and 0 means "no rotation", not "every minute" |
 | `wallpaper_order` | `shuffle` or `sequential` | How a collection advances. `shuffle` (the default, and what launchers did before this key existed) avoids repeating the current picture; `sequential` walks the folder in filename order and wraps at the end. An unknown value falls back to `shuffle` |
 | `wallpaper_dim` | 0 to 90 | Black overlay over wallpaper images, in percent; 0 by default and no shade view at all |
