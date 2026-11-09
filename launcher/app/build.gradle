@@ -17,14 +17,40 @@ android {
         versionName '3.3'
     }
 
+    signingConfigs {
+        // Personal fork only (tvle369/cleanyourtv): the permanent key, reconstructed only inside the
+        // workflow_dispatch personal-signed-build job. Every other build — upstream, pull_request, push,
+        // or this file run with none of these set — leaves this config empty and falls back to debug below.
+        release {
+            def ksPath = System.getenv("CYT_KEYSTORE_PATH")
+            def ksPass = System.getenv("CYT_KEYSTORE_PASSWORD")
+            def ksAlias = System.getenv("CYT_KEY_ALIAS")
+            def ksKeyPass = System.getenv("CYT_KEY_PASSWORD")
+            if (ksPath && ksPass && ksAlias && ksKeyPass) {
+                storeFile file(ksPath)
+                storeType 'PKCS12'
+                storePassword ksPass
+                keyAlias ksAlias
+                keyPassword ksKeyPass
+            }
+        }
+    }
+
     buildTypes {
         release {
             // R8 strips and optimises the code (AndroidX included): smaller APK, faster start on a slow TV CPU.
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // Sideloaded over ADB, never published: sign with the debug key so it installs over a debug build.
-            signingConfig signingConfigs.debug
+            // Sideloaded over ADB, never published: the permanent key signs only when all four CYT_* env
+            // vars are present (the personal-signed-build job); every other build keeps the original
+            // debug-key behavior unchanged, so it still installs over a prior debug build.
+            def hasPersonalSigning =
+                System.getenv("CYT_KEYSTORE_PATH") &&
+                System.getenv("CYT_KEYSTORE_PASSWORD") &&
+                System.getenv("CYT_KEY_ALIAS") &&
+                System.getenv("CYT_KEY_PASSWORD")
+            signingConfig = hasPersonalSigning ? signingConfigs.release : signingConfigs.debug
         }
     }
 

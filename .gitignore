@@ -16,6 +16,17 @@ traces/
 bench-results/
 .DS_Store
 
+# Personal signing material (tvle369/cleanyourtv only) — never committed
+*.p12
+*.jks
+*.keystore
+*.pem
+*.key
+*.env
+
+# Local theme background videos (your own, never committed; the static wallpaper is the fallback).
+themes/*/background.mp4
+
 # Generated install bundles and JVM crash reports stay out of contributions.
 *.apk
 *.aab

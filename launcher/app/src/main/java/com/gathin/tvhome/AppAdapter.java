@@ -220,12 +220,15 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final boolean uniformTiles;
     /** Packages drawn from their icon and name even when they have a banner (config.xml icon_tiles). */
     private final Set<String> iconTiles;
+    /** config hide_app_grid: report no more than the dock's own width, so nothing past it is ever bound or drawn. */
+    private final boolean hideAppGrid;
     private final List<Entry> items = new ArrayList<>();
 
     AppAdapter(Context ctx, TileListener listener, int dockSize, Config cfg) {
         this.ctx = ctx;
         this.listener = listener;
         this.dockSize = dockSize;
+        this.hideAppGrid = cfg.hideAppGrid;
         this.favourites = cfg.dockApps;
         this.fillDock = cfg.fillDock;
         this.hidden = new HashSet<>(cfg.hiddenApps);
@@ -564,7 +567,21 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     @Override
     public int getItemCount() {
-        return items.size() + (showLibrary ? 1 : 0);
+        return resolvedItemCount(items.size(), dockSize, docked, dockRow, hideAppGrid, showLibrary);
+    }
+
+    /**
+     * hide_app_grid: cap at the dock's own width so nothing past it is ever measured, bound or drawn - the
+     * dock's existing items, order and focus handling are untouched, since this only changes how many of them
+     * RecyclerView is told to ask for. The width is dockSize with a banded dock (dock_row true: real dock apps
+     * plus any empty slots fill the row), or just docked without one (dock_row false: the dock apps are the
+     * first tiles of a plain grid, with no reserved empty slots - grid tiles would start right after them).
+     * Math.min guards the rare case of fewer installed/resolved apps than the dock has slots for.
+     */
+    static int resolvedItemCount(int itemsSize, int dockSize, int docked, boolean dockRow, boolean hideAppGrid,
+                                 boolean showLibrary) {
+        if (hideAppGrid) return Math.min(itemsSize, dockRow ? dockSize : docked);
+        return itemsSize + (showLibrary ? 1 : 0);
     }
 
     int appCount() { return items.size(); }

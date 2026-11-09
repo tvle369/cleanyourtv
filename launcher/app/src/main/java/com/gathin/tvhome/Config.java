@@ -39,6 +39,8 @@ final class Config {
     private static final String TAG = "TvHome.Config";
     static final String FILE_NAME = "config.json";
     static final String WALLPAPER_NAME = "wallpaper.jpg";
+    /** The local looped background a theme may push alongside its wallpaper (config.json video_background). */
+    static final String VIDEO_BACKGROUND_NAME = "background.mp4";
     static final String SETTINGS_NAME = "launcher_settings";
     static final String ROWS_BELOW_DOCK_KEY = "rows_below_dock";
     static final String WALLPAPER_CHOICE_KEY = "wallpaper_choice";
@@ -212,6 +214,14 @@ final class Config {
      * invalid values keep the historical shuffle so existing themes rotate exactly as before.
      */
     final String wallpaperOrder;
+    /** Whether a valid background.mp4 exists and video_background is on; false whenever either is not. */
+    final boolean videoBackground;
+    /** The theme's background.mp4, or null when video_background is off or the file is absent/empty. */
+    final File videoBackgroundFile;
+    /** Whether that video plays with its own embedded audio (config.json video_background_sound); off by default. */
+    final boolean videoBackgroundSound;
+    /** Suppresses every grid tile below the dock, leaving only the dock's own width (config.json hide_app_grid). */
+    final boolean hideAppGrid;
     /** Whether the overlay file was present and parsed. */
     final boolean overlayApplied;
     /** Festive skin from a theme (festival, festival_until, greeting, accent_color); {@link Festival#NONE} if none. */
@@ -292,7 +302,8 @@ final class Config {
                    boolean keyFilter, boolean dockGlass, String glowStyle, boolean wallpaperCaptions,
                    boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding, boolean dockBand, boolean cinematicDots, boolean cinematicWhiteFocus, boolean wifiStatusColor, int cinematicScrim, int cinematicArt,
                    Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways, boolean inputsConnectedOnly, boolean inputsCecStateOnly,
-                   int openOnStartNetworkWait, boolean openOnStartOnWake, boolean iconOnlyVpn, String clockFormat, boolean backOpensClock, boolean glowSnap) {
+                   int openOnStartNetworkWait, boolean openOnStartOnWake, boolean iconOnlyVpn, String clockFormat, boolean backOpensClock, boolean glowSnap,
+                   boolean videoBackground, File videoBackgroundFile, boolean videoBackgroundSound, boolean hideAppGrid) {
         this.handleViewInputs = handleViewInputs;
         this.tileMenu = tileMenu;
         this.inputKeycodes = inputKeycodes;
@@ -409,6 +420,10 @@ final class Config {
         this.glowStyle = glowStyle(glowStyle);
         this.wallpaperCaptions = wallpaperCaptions;
         this.glassStyle = glassStyle(glassStyle);
+        this.videoBackground = videoBackground;
+        this.videoBackgroundFile = videoBackgroundFile;
+        this.videoBackgroundSound = videoBackgroundSound;
+        this.hideAppGrid = hideAppGrid;
     }
 
     /** A known glow_style, or radial (the default) for anything else. */
@@ -475,6 +490,9 @@ final class Config {
         boolean iconOnlyVpn = res.getBoolean(R.bool.icon_only_vpn);
         boolean backOpensClock = res.getBoolean(R.bool.back_opens_clock);
         boolean glowSnap = res.getBoolean(R.bool.glow_snap);
+        boolean videoBackground = res.getBoolean(R.bool.video_background);
+        boolean videoBackgroundSound = res.getBoolean(R.bool.video_background_sound);
+        boolean hideAppGrid = res.getBoolean(R.bool.hide_app_grid);
         boolean libraryButton = res.getBoolean(R.bool.library_button);
         boolean showLibraryPill = res.getBoolean(R.bool.show_library_pill);
         int wifiLabelWidth = res.getInteger(R.integer.wifi_label_width);
@@ -589,6 +607,9 @@ final class Config {
             iconOnlyVpn = bool(json, "icon_only_vpn", iconOnlyVpn);
             backOpensClock = bool(json, "back_opens_clock", backOpensClock);
             glowSnap = bool(json, "glow_snap", glowSnap);
+            videoBackground = bool(json, "video_background", videoBackground);
+            videoBackgroundSound = bool(json, "video_background_sound", videoBackgroundSound);
+            hideAppGrid = bool(json, "hide_app_grid", hideAppGrid);
             libraryButton = bool(json, "library_button", libraryButton);
             showLibraryPill = bool(json, "show_library_pill", showLibraryPill);
             wifiLabelWidth = integer(json, "wifi_label_width", wifiLabelWidth, 0, 300);
@@ -671,6 +692,13 @@ final class Config {
         // A theme can also switch the wallpaper off while the file is still there.
         boolean wallpaperEnabled = json == null || bool(json, "wallpaper", true);
         if (!wallpaperEnabled) wallpaper = null;
+        // Mirrors the wallpaper file check above: a missing, empty or unreadable background.mp4 falls back
+        // to the wallpaper exactly as if video_background had never been turned on.
+        File videoBackgroundFile = dir != null ? new File(dir, VIDEO_BACKGROUND_NAME) : null;
+        if (videoBackgroundFile != null && !(videoBackgroundFile.isFile() && videoBackgroundFile.length() > 0)) {
+            videoBackgroundFile = null;
+        }
+        if (videoBackgroundFile == null) videoBackground = false;
         int rotationMinutes = json == null ? 0 : integer(json, "wallpaper_rotation_minutes", 0, 0, 1440);
         int wallpaperDim = json == null ? 0 : integer(json, "wallpaper_dim", 0, 0, 90);
         int dockOpacity = json == null ? 100 : integer(json, "dock_opacity", 100, 30, 100);
@@ -715,7 +743,8 @@ final class Config {
                 consumeVolumeKeys, powerOnHome, homeLongPressHome, wifiStatusWarnings, topBarApps, showGreeting, headerWhite, clockWallpaper,
                 Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset,
                 dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly, inputsCecStateOnly,
-                Math.max(0, Math.min(600, openOnStartNetworkWait)), openOnStartOnWake, iconOnlyVpn, clockFormat, backOpensClock, glowSnap);
+                Math.max(0, Math.min(600, openOnStartNetworkWait)), openOnStartOnWake, iconOnlyVpn, clockFormat, backOpensClock, glowSnap,
+                videoBackground, videoBackgroundFile, videoBackgroundSound, hideAppGrid);
     }
 
     /**
