@@ -511,6 +511,10 @@
          silent until explicitly turned on. Can also be set with "video_background_sound" in a theme's
          config.json. -->
     <bool name="video_background_sound">false</bool>
+    <!-- Suppresses every grid tile below the dock: the adapter reports no more than the dock's own width, so
+         nothing past it is ever measured, bound or drawn. Off by default, so every existing theme keeps its
+         current grid. Can also be set with "hide_app_grid" in a theme's config.json. -->
+    <bool name="hide_app_grid">false</bool>
     <!-- The focus highlight glows in the focused app's colour on every tile, as the cinematic shelf does for the
          dock, without cinematic_home. Can also be set with "app_glow": true in a theme's config.json. -->
     <bool name="app_glow">false</bool>
